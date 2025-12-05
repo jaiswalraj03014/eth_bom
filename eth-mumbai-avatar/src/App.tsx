@@ -361,7 +361,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 };
                 
                 // IMPORTANT: Ensure this path is correct in your Vercel public folder
-                stampImg.src = '/public/images/stamp.png'; 
+                stampImg.src = '/images/stamp.png'; 
             };
             
             logoImg.onerror = () => resolve(canvas.toDataURL('image/jpeg', 0.95));

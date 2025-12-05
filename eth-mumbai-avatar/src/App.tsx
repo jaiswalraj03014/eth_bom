@@ -302,7 +302,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
 };
 
 // CONSTANT FOR CREDITS
-const MAX_CREDITS = 3;
+const MAX_CREDITS = 2;
 
 export default function ETHMumbaiApp() {
   const [image, setImage] = useState<string | null>(null);

@@ -1,11 +1,11 @@
-import { useState, useRef, type MouseEvent } from 'react';
+import { useState, useRef, useEffect, type MouseEvent } from 'react';
 import { 
   Upload, 
   X, 
   Zap, 
   Download, 
   Ticket,
-  Maximize2 // Added for the hover icon
+  Maximize2 
 } from 'lucide-react';
 
 // --- CUSTOM STYLES & ANIMATIONS ---
@@ -24,8 +24,7 @@ const Styles = () => (
     body {
       background-color: var(--eth-red);
       font-family: 'Outfit', sans-serif;
-      overflow-x: hidden;
-      overscroll-behavior-y: none; 
+      overflow: hidden; /* Prevent body scroll, handle in app container */
     }
 
     .font-logo { font-family: 'Fredoka', sans-serif; }
@@ -70,9 +69,12 @@ const Styles = () => (
       box-shadow: 4px 4px 0px var(--eth-black);
       transition: all 0.2s ease;
     }
-    .hard-shadow:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0px var(--eth-black);
+    /* Disable hover transform on touch devices to prevent stuck states */
+    @media (hover: hover) {
+        .hard-shadow:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--eth-black);
+        }
     }
     .hard-shadow:active {
       transform: translate(0px, 0px);
@@ -112,7 +114,7 @@ const Marquee = () => (
             <img 
               src="/images/no_bg.png" 
               alt="Logo" 
-              className="w-[30px] h-[30px] md:w-[40px] md:h-[40px]" 
+              className="w-[24px] h-[24px] md:w-[40px] md:h-[40px]" 
             />
             ETHMumbai 2026 
             <span className="text-gray-500">•</span> 
@@ -127,9 +129,9 @@ const Marquee = () => (
 );
 
 const Navbar = () => (
-  <nav className="w-full p-4 md:p-6 flex items-center max-w-7xl mx-auto text-white relative z-20 shrink-0">
+  <nav className="w-full p-4 md:p-6 flex items-center max-w-7xl mx-auto text-white relative z-20 shrink-0 justify-center md:justify-start">
     <div className="flex items-center gap-3">
-      <img src="/images/logo.png" alt="ETHMumbai Logo" className="h-16 md:h-24 w-auto object-contain drop-shadow-md" />
+      <img src="/images/logo.png" alt="ETHMumbai Logo" className="h-14 md:h-24 w-auto object-contain drop-shadow-md" />
     </div>
   </nav>
 );
@@ -193,10 +195,23 @@ export default function ETHMumbaiApp() {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isModalOpen, setIsModalOpen] = useState(false); // <--- NEW STATE FOR POPUP
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isModalOpen]);
+
   const handleMouseMove = (e: MouseEvent) => {
+    // Disable parallax calculations on small screens for performance
+    if (window.innerWidth < 768) return; 
+    
     const x = (e.clientX / window.innerWidth - 0.5) * 15; 
     const y = (e.clientY / window.innerHeight - 0.5) * 8; 
     setMousePos({ x, y });
@@ -319,7 +334,8 @@ RULES FOR DOODLES:
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative bg-[#e82024] text-[#1A1A1A] overflow-hidden" onMouseMove={handleMouseMove}>
+    // Changed: h-[100dvh] + overflow-y-auto to allow scrolling on small screens while keeping app feel
+    <div className="h-[100dvh] w-full flex flex-col relative bg-[#e82024] text-[#1A1A1A] overflow-y-auto overflow-x-hidden" onMouseMove={handleMouseMove}>
       <Styles />
       <Marquee />
       <Navbar />
@@ -327,33 +343,33 @@ RULES FOR DOODLES:
       {/* --- POPUP MODAL (MAXIMIZED VIEW) --- */}
       {isModalOpen && generatedImage && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setIsModalOpen(false)}
         >
           <div 
             className="relative w-full max-w-2xl flex flex-col items-center modal-zoom" 
-            onClick={(e) => e.stopPropagation()} // Prevent close when clicking image
+            onClick={(e) => e.stopPropagation()} 
           >
-             {/* Close Button */}
+             {/* Close Button - Optimized for Mobile (Inside container) */}
              <button 
                 onClick={() => setIsModalOpen(false)}
-                className="absolute -top-12 right-0 md:-right-12 text-white hover:text-[#FFD233] transition-colors p-2"
+                className="absolute -top-12 right-0 md:-right-12 z-50 text-white hover:text-[#FFD233] transition-colors p-2 bg-black/50 rounded-full md:bg-transparent"
              >
-                <X size={32} strokeWidth={3} />
+                <X size={28} strokeWidth={3} />
              </button>
 
-             {/* Main Image */}
+             {/* Main Image - Constrained Height */}
              <img 
                 src={generatedImage} 
                 alt="Full Generated Avatar" 
-                className="w-full h-auto rounded-xl border-4 border-black shadow-[0px_0px_0px_4px_rgba(255,255,255,0.2)]" 
+                className="w-full max-h-[60vh] md:max-h-[75vh] object-contain rounded-xl border-4 border-black shadow-[0px_0px_0px_4px_rgba(255,255,255,0.2)]" 
              />
 
              {/* Modal Actions */}
-             <div className="w-full mt-6">
+             <div className="w-full mt-4 md:mt-6">
                 <button 
                     onClick={handleDownload} 
-                    className="w-full py-4 bg-[#FFD233] border-4 border-black rounded-xl font-bold text-xl hard-shadow flex justify-center items-center gap-2 hover:bg-[#ffc800]"
+                    className="w-full py-3 md:py-4 bg-[#FFD233] border-4 border-black rounded-xl font-bold text-lg md:text-xl hard-shadow flex justify-center items-center gap-2 hover:bg-[#ffc800]"
                 >
                     DOWNLOAD HD <Download size={24} />
                 </button>
@@ -365,18 +381,16 @@ RULES FOR DOODLES:
       {/* --- PARALLAX BACKGROUND --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute inset-0 bg-pattern opacity-30"></div>
+        {/* Hide complex background elements on small mobile to save space/distraction */}
         <div 
-          className="absolute top-32 right-[10%] w-24 h-24 md:w-32 md:h-32 bg-[#FFD233] rounded-full border-4 border-black opacity-90 shadow-[8px_8px_0px_rgba(0,0,0,0.2)] transition-transform duration-100 ease-out"
+          className="absolute top-32 right-[10%] w-24 h-24 md:w-32 md:h-32 bg-[#FFD233] rounded-full border-4 border-black opacity-90 shadow-[8px_8px_0px_rgba(0,0,0,0.2)] transition-transform duration-100 ease-out hidden sm:block"
           style={{ transform: `translate(${-mousePos.x * 2}px, ${-mousePos.y * 2}px)` }}
         ></div>
         <div className="absolute top-28 left-[5%] cloud-anim opacity-60 md:opacity-90 z-0" style={{ transform: `translate(${mousePos.x}px, ${mousePos.y}px)` }}>
            <img src="/images/cloud.png" alt="Cloud" className="w-24 md:w-48" />
         </div>
-        <div className="absolute top-52 right-[15%] cloud-anim opacity-50 md:opacity-80 delay-700 z-0" style={{ transform: `translate(${mousePos.x * 1.5}px, ${mousePos.y}px)` }}>
+        <div className="absolute top-52 right-[15%] cloud-anim opacity-50 md:opacity-80 delay-700 z-0 hidden sm:block" style={{ transform: `translate(${mousePos.x * 1.5}px, ${mousePos.y}px)` }}>
            <img src="/images/cloud.png" alt="Cloud" className="w-16 md:w-36" />
-        </div>
-        <div className="absolute top-10 left-[25%] cloud-anim-slow opacity-40 md:opacity-70 z-0" style={{ transform: `translate(${mousePos.x * 0.8}px, ${mousePos.y * 0.5}px)` }}>
-           <img src="/images/cloud.png" alt="Cloud" className="w-28 md:w-56" />
         </div>
         <div 
             className="absolute bottom-0 left-0 w-full z-0 flex items-end"
@@ -392,26 +406,32 @@ RULES FOR DOODLES:
       </div>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-grow container mx-auto px-4 z-10 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16 py-4 md:py-8 pb-20 md:pb-8">
+      {/* Added safe-area padding pb-safe for iPhone home bar */}
+      <main className="flex-grow container mx-auto px-4 z-10 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 py-4 md:py-8 pb-12 md:pb-8">
         
         {/* LEFT: TEXT */}
-        <div className="text-center md:text-left text-white max-w-lg shrink-0">
-          <div className="inline-flex items-center gap-2 bg-[#FFD233] text-black px-3 py-1 md:px-4 rounded-full font-bold text-xs md:text-sm mb-4 md:mb-6 border-2 border-black hard-shadow">
-            <Ticket size={14} className="md:w-4 md:h-4" /> OFFICIAL TICKET BOOTH
+        <div className="text-center md:text-left text-white max-w-lg shrink-0 flex flex-col items-center md:items-start">
+          <div className="inline-flex items-center gap-2 bg-[#FFD233] text-black px-3 py-1 md:px-4 rounded-full font-bold text-[10px] md:text-sm mb-3 md:mb-6 border-2 border-black hard-shadow">
+            <Ticket size={12} className="md:w-4 md:h-4" /> OFFICIAL TICKET BOOTH
           </div>
-          <h1 className="text-5xl md:text-8xl font-logo font-bold leading-[0.9] mb-4 md:mb-6 shadow-black drop-shadow-lg">
+          
+          {/* Responsive Text Sizing: Smaller on mobile to prevent overflow */}
+          <h1 className="text-4xl sm:text-6xl md:text-8xl font-logo font-bold leading-[0.9] mb-3 md:mb-6 shadow-black drop-shadow-lg">
             GET YOUR <br/><span className="text-[#FFD233]">AVATAR</span>
           </h1>
-          <p className="text-lg md:text-2xl font-medium opacity-90 mb-4 md:mb-8 leading-snug px-2 md:px-0">
+          
+          <p className="text-base sm:text-lg md:text-2xl font-medium opacity-90 mb-4 md:mb-8 leading-snug px-4 md:px-0 max-w-sm md:max-w-none">
             Board the bus to Web3! Upload your photo to mint your personalized ETHMumbai Avatar.
           </p>
-          <div className="block mx-auto md:mx-0 bus-body mb-6 md:mb-0">
-             <img src="/images/bus.png" className="w-48 md:w-80 h-auto object-contain drop-shadow-[8px_8px_0px_rgba(0,0,0,0.3)]" style={{ transform: 'scaleX(-1)' }} />
+          
+          {/* Reduced Bus size on mobile */}
+          <div className="block mx-auto md:mx-0 bus-body mb-4 md:mb-0">
+             <img src="/images/bus.png" className="w-32 sm:w-48 md:w-80 h-auto object-contain drop-shadow-[4px_4px_0px_rgba(0,0,0,0.3)] md:drop-shadow-[8px_8px_0px_rgba(0,0,0,0.3)]" style={{ transform: 'scaleX(-1)' }} />
           </div>
         </div>
 
         {/* RIGHT: TICKET MACHINE */}
-        <div className="relative w-full max-w-sm md:max-w-md">
+        <div className="relative w-full max-w-[340px] md:max-w-md shrink-0 mb-8 md:mb-0">
             <div className="bg-[#FFF8F3] rounded-3xl border-4 border-black p-2 shadow-[8px_8px_0px_rgba(0,0,0,0.3)] md:shadow-[12px_12px_0px_rgba(0,0,0,0.3)] relative">
                 <div className="absolute top-4 left-4 w-3 h-3 bg-[#D1D5DB] rounded-full border-2 border-black flex items-center justify-center"><div className="w-full h-0.5 bg-black rotate-45"></div></div>
                 <div className="absolute top-4 right-4 w-3 h-3 bg-[#D1D5DB] rounded-full border-2 border-black flex items-center justify-center"><div className="w-full h-0.5 bg-black rotate-45"></div></div>
@@ -427,18 +447,18 @@ RULES FOR DOODLES:
                             {!image ? (
                                 <div 
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="w-full h-52 md:h-64 bg-gray-50 border-4 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group active:scale-95"
+                                    className="w-full h-48 md:h-64 bg-gray-50 border-4 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 hover:border-blue-500 transition-all group active:scale-95 touch-manipulation"
                                 >
-                                    <div className="w-14 h-14 md:w-16 md:h-16 bg-white border-2 border-black rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform hard-shadow">
-                                        <Upload size={24} className="text-black" />
+                                    <div className="w-12 h-12 md:w-16 md:h-16 bg-white border-2 border-black rounded-full flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform hard-shadow">
+                                        <Upload size={20} className="text-black md:w-6 md:h-6" />
                                     </div>
-                                    <span className="font-bold text-base md:text-lg text-gray-600">Upload Photo</span>
+                                    <span className="font-bold text-sm md:text-lg text-gray-600">Upload Photo</span>
                                     <input ref={fileInputRef} type="file" hidden accept="image/*" onChange={(e) => e.target.files && processFile(e.target.files[0])} />
                                 </div>
                             ) : (
-                                <div className="relative w-full h-52 md:h-64 rounded-xl overflow-hidden border-2 border-black">
+                                <div className="relative w-full h-48 md:h-64 rounded-xl overflow-hidden border-2 border-black">
                                     <img src={image} className="w-full h-full object-cover" />
-                                    <button onClick={() => setImage(null)} className="absolute top-2 right-2 bg-white border-2 border-black rounded-full p-2 hover:bg-red-100 shadow-md z-10">
+                                    <button onClick={() => setImage(null)} className="absolute top-2 right-2 bg-white border-2 border-black rounded-full p-2 hover:bg-red-100 shadow-md z-10 active:scale-90 transition-transform">
                                         <X size={20} />
                                     </button>
                                 </div>
@@ -447,11 +467,11 @@ RULES FOR DOODLES:
                             <button 
                                 onClick={handleGenerate}
                                 disabled={!image || loading}
-                                className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none
+                                className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
                                     ${!image ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#e82024] text-white hover:bg-[#d11d21]'}`}
                             >
                                 {loading ? (
-                                    <>Processing <span className="animate-spin"></span></>
+                                    <>Processing <span className="animate-spin ml-2">⏳</span></>
                                 ) : (
                                     <>GENERATE PASS <Zap size={20} fill="currentColor" /></>
                                 )}
@@ -460,15 +480,15 @@ RULES FOR DOODLES:
                     ) : (
                         <div className="w-full flex flex-col items-center ticket-reveal">
                             <div className="relative bg-white w-full rounded-xl border-2 border-black overflow-hidden shadow-lg">
-                                <div className="bg-[#1A1A1A] text-white p-3 flex justify-between items-center">
+                                <div className="bg-[#1A1A1A] text-white p-2.5 md:p-3 flex justify-between items-center">
                                     <span className="font-mono text-xs text-[#FFD233]">OFFICIAL AVATAR</span>
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ETHMumbai" className="w-8 h-8 bg-white p-0.5" />
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ETHMumbai" className="w-6 h-6 md:w-8 md:h-8 bg-white p-0.5" />
                                 </div>
                                 
-                                <div className="p-4 bg-[#FFF8F3]">
+                                <div className="p-3 md:p-4 bg-[#FFF8F3]">
                                     {/* --- UPDATED: CLICK TO OPEN MODAL --- */}
                                     <div 
-                                        className="aspect-square w-full border-2 border-black rounded-lg overflow-hidden relative group cursor-pointer"
+                                        className="aspect-square w-full border-2 border-black rounded-lg overflow-hidden relative group cursor-pointer active:opacity-90 transition-opacity"
                                         onClick={() => setIsModalOpen(true)}
                                     >
                                         <img src={generatedImage} className="w-full h-full object-cover" />
@@ -479,13 +499,13 @@ RULES FOR DOODLES:
                                     </div>
                                 </div>
 
-                                <div className="p-4 border-t-2 border-dashed border-gray-300">
+                                <div className="p-3 md:p-4 border-t-2 border-dashed border-gray-300">
                                     <div className="flex gap-2">
-                                        <div className="flex-1 bg-blue-100 border border-blue-300 rounded p-2 text-center">
+                                        <div className="flex-1 bg-blue-100 border border-blue-300 rounded p-1.5 md:p-2 text-center">
                                             <span className="block text-[10px] text-gray-500 uppercase">CHAIN</span>
                                             <span className="font-bold text-xs md:text-sm">ETH</span>
                                         </div>
-                                        <div className="flex-1 bg-yellow-100 border border-yellow-300 rounded p-2 text-center">
+                                        <div className="flex-1 bg-yellow-100 border border-yellow-300 rounded p-1.5 md:p-2 text-center">
                                             <span className="block text-[10px] text-gray-500 uppercase">Dest.</span>
                                             <span className="font-bold text-xs md:text-sm">Mumbai</span>
                                         </div>
@@ -496,13 +516,13 @@ RULES FOR DOODLES:
                             <div className="flex gap-3 w-full mt-4 md:mt-6">
                                 <button 
                                     onClick={handleDownload} 
-                                    className="flex-1 py-3 bg-white border-2 border-black rounded-lg font-bold hover:bg-gray-50 hard-shadow flex justify-center items-center gap-2 active:translate-y-1 active:shadow-none"
+                                    className="flex-1 py-3 bg-white border-2 border-black rounded-lg font-bold hover:bg-gray-50 hard-shadow flex justify-center items-center gap-2 active:translate-y-1 active:shadow-none text-sm md:text-base"
                                 >
                                     <Download size={18} /> Save
                                 </button>
                                 <button 
                                     onClick={() => setGeneratedImage(null)}
-                                    className="px-4 py-3 bg-[#1A1A1A] text-white border-2 border-black rounded-lg font-bold hover:bg-gray-800 hard-shadow active:translate-y-1 active:shadow-none"
+                                    className="px-4 py-3 bg-[#1A1A1A] text-white border-2 border-black rounded-lg font-bold hover:bg-gray-800 hard-shadow active:translate-y-1 active:shadow-none text-sm md:text-base"
                                 >
                                     New
                                 </button>
@@ -511,6 +531,7 @@ RULES FOR DOODLES:
                     )}
                 </div>
             </div>
+            {/* Hide decorative circle on mobile to allow scrolling past */}
             <div className="absolute -z-10 -top-8 -right-8 w-24 h-24 bg-[#3B82F6] rounded-full border-4 border-black hard-shadow hidden md:block animate-bounce"></div>
         </div>
       </main>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, MouseEvent } from 'react';
+import { useState, useRef, type MouseEvent } from 'react';
 import { 
   Upload, 
   X, 

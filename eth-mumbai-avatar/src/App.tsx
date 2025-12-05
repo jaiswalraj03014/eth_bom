@@ -7,7 +7,8 @@ import {
   Ticket,
   Maximize2,
   Users,
-  User
+  User,
+  AlertCircle // Added icon
 } from 'lucide-react';
 
 const SINGLE_PROMPT = `EXTREME STRICT TEMPLATE — ZERO DEVIATION  
@@ -138,6 +139,11 @@ const Styles = () => (
     .hard-shadow:active {
       transform: translate(2px, 2px);
       box-shadow: 2px 2px 0px var(--eth-black);
+    }
+    
+    .hard-shadow:disabled {
+        box-shadow: none;
+        transform: translate(2px, 2px);
     }
 
     @keyframes bus-drive {
@@ -295,6 +301,8 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
     });
 };
 
+// CONSTANT FOR CREDITS
+const MAX_CREDITS = 3;
 
 export default function ETHMumbaiApp() {
   const [image, setImage] = useState<string | null>(null);
@@ -303,7 +311,22 @@ export default function ETHMumbaiApp() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupMode, setIsGroupMode] = useState(false);
+  
+  // NEW STATE FOR CREDITS
+  const [credits, setCredits] = useState<number>(0);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize Credits from LocalStorage on mount
+  useEffect(() => {
+    const storedCredits = localStorage.getItem('eth_mumbai_credits');
+    if (storedCredits) {
+        setCredits(parseInt(storedCredits));
+    } else {
+        localStorage.setItem('eth_mumbai_credits', MAX_CREDITS.toString());
+        setCredits(MAX_CREDITS);
+    }
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isModalOpen ? 'hidden' : '';
@@ -342,6 +365,13 @@ export default function ETHMumbaiApp() {
 
   const handleGenerate = async () => {
     if (!image) return;
+    
+    // Check credits before proceeding
+    if (credits <= 0) {
+        alert("You have used all your free credits!");
+        return;
+    }
+
     setLoading(true);
     
     try {
@@ -368,6 +398,12 @@ export default function ETHMumbaiApp() {
         if (imgData) {
             const finalImage = await addWatermarkAndText(imgData, isGroupMode);
             setGeneratedImage(finalImage);
+            
+            // DEDUCT CREDIT ON SUCCESSFUL GENERATION
+            const newCredits = credits - 1;
+            setCredits(newCredits);
+            localStorage.setItem('eth_mumbai_credits', newCredits.toString());
+
         } else {
             console.error(data);
             alert("Could not generate image. Please try again.");
@@ -461,7 +497,11 @@ export default function ETHMumbaiApp() {
                 <div className="bg-white rounded-2xl border-2 border-black overflow-hidden p-4 md:p-6 flex flex-col items-center">
                     <div className="w-full flex justify-between items-center mb-4 border-b-2 border-dashed border-gray-300 pb-4">
                         <span className="font-bold text-gray-400 text-sm md:text-base">TICKET MACHINE #01</span>
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        {/* CREDIT COUNTER UI */}
+                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded border-2 border-black text-xs font-bold ${credits > 0 ? 'bg-[#FFD233] text-black' : 'bg-red-500 text-white'}`}>
+                            <Ticket size={14} />
+                            {credits} LEFT
+                        </div>
                     </div>
 
                     {!generatedImage ? (
@@ -506,16 +546,31 @@ export default function ETHMumbaiApp() {
 
                             <button 
                                 onClick={handleGenerate}
-                                disabled={!image || loading}
+                                // DISABLED if no image, loading, OR NO CREDITS
+                                disabled={!image || loading || credits <= 0}
                                 className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
-                                    ${!image ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#e82024] text-white hover:bg-[#d11d21]'}`}
+                                    ${credits <= 0 
+                                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
+                                        : !image 
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                            : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
+                                    }`}
                             >
                                 {loading ? (
                                     <>MINTING {isGroupMode ? 'GROUP' : ''} TICKETS <span className="animate-spin ml-2"></span></>
+                                ) : credits <= 0 ? (
+                                    <>NO CREDITS LEFT <AlertCircle size={20} /></>
                                 ) : (
                                     <>GENERATE {isGroupMode ? 'GROUP' : ''} TICKETS <Zap size={20} fill="currentColor" /></>
                                 )}
                             </button>
+                            
+                            {/* Warning message if credits low/zero */}
+                            {credits <= 0 && (
+                                <p className="text-xs text-red-500 font-bold text-center mt-2">
+                                    Limit reached for this device.
+                                </p>
+                            )}
                         </div>
                     ) : (
                         <div className="w-full flex flex-col items-center ticket-reveal">

@@ -338,16 +338,15 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     const stampScale = stampW / stampImg.width;
                     const stampH = stampImg.height * stampScale;
                     
-                    // Calculate offsets to push it off-screen (cut out effect)
-                    // Push 1/3rd of the stamp width off the right edge
-                    const offsetX = stampW / 3; 
-                    // Push 1/3rd of the stamp height off the top edge
-                    const offsetY = stampH / 3; 
+                    // NEW POSITION: Top Right Corner, slightly off-screen to "cut out"
+                    // Offset: Push 30% of width/height off screen
+                    const offsetX = stampW * 0.3; 
+                    const offsetY = stampH * 0.3; 
 
                     // Draw coordinates: 
-                    // X = Canvas Width - Stamp Width + Offset (moves right)
-                    // Y = Negative Offset (moves up)
-                    const drawX = width - stampW + offsetX;
+                    // X = Width - stampW + offsetX (pushes it right)
+                    // Y = -offsetY (pushes it up)
+                    const drawX = width - stampW + offsetX; 
                     const drawY = -offsetY;
 
                     ctx.drawImage(stampImg, drawX, drawY, stampW, stampH);

@@ -8,8 +8,10 @@ import {
   Maximize2,
   Users,
   User,
-  AlertCircle // Added icon
+  AlertCircle
 } from 'lucide-react';
+
+// --- FULL DETAILED PROMPTS (UNSHORTENED) ---
 
 const SINGLE_PROMPT = `EXTREME STRICT TEMPLATE — ZERO DEVIATION  
 This pipeline produces a square 1:1 avatar of a SINGLE PERSON with a scattered Mumbai doodle background.  
@@ -90,6 +92,8 @@ Include ALL of these, but distribute them widely:
 RULES FOR DOODLES: They MUST be spread evenly.
 `;
 
+
+// --- CUSTOM STYLES ---
 const Styles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=JetBrains+Mono:wght@500&family=Outfit:wght@400;600;800&display=swap');
@@ -117,7 +121,6 @@ const Styles = () => (
     }
     .cloud-anim { animation: float-cloud 8s ease-in-out infinite alternate; }
     .cloud-anim-2 { animation: float-cloud 10s ease-in-out infinite alternate-reverse; }
-    .cloud-anim-3 { animation: float-cloud 12s ease-in-out infinite alternate; }
 
     @keyframes marquee {
       0% { transform: translateX(0); }
@@ -165,6 +168,7 @@ const Styles = () => (
   `}</style>
 );
 
+// --- VISUAL COMPONENTS ---
 
 const Marquee = () => (
   <div className="w-full bg-black text-white py-2 overflow-hidden border-y-2 border-black z-50 relative shrink-0">
@@ -189,12 +193,16 @@ const Navbar = () => (
   </nav>
 );
 
-const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<string> => {
+// --- HELPER: ADD WATERMARK, TEXT, NAME & STAMP ---
+const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: string): Promise<string> => {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const mainImg = new Image();
         const logoImg = new Image();
+        const stampImg = new Image(); // New Stamp Image
+
+        // 1. DYNAMIC RESOLUTION
         const width = 2048;
         const height = isGroup ? 1536 : 2048;
 
@@ -209,6 +217,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
         mainImg.onload = () => {
             if (!ctx) return;
 
+            // 2. Draw Main Image (Crop/Fit Logic)
             const imgAspect = mainImg.width / mainImg.height;
             const canvasAspect = width / height;
             let drawW, drawH, offX, offY;
@@ -225,10 +234,12 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
                 offY = (height - drawH) / 2;
             }
 
+            // Fill red first
             ctx.fillStyle = '#e82024';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(mainImg, offX, offY, drawW, drawH);
 
+            // 3. Add Slang Bubbles (ONLY IF GROUP MODE)
             if (isGroup) {
                 ctx.font = '900 85px "Outfit", sans-serif';
                 ctx.textAlign = 'center';
@@ -237,10 +248,10 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
 
                 const phrase = mumbaiPhrases[Math.floor(Math.random() * mumbaiPhrases.length)];
                 
-
+                // Safe corners
                 const isLeft = Math.random() > 0.5;
                 const bubbleX = isLeft ? width * 0.15 : width * 0.85;
-                const bubbleY = height * 0.2;
+                const bubbleY = height * 0.2; // Top 20%
 
                 const textMetrics = ctx.measureText(phrase.toUpperCase());
                 const textWidth = textMetrics.width;
@@ -255,15 +266,17 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
                 ctx.rotate((Math.random() - 0.5) * 0.2); 
                 ctx.translate(-bubbleX, -bubbleY);
 
-
+                // Shadow
                 ctx.fillStyle = '#1A1A1A';
                 ctx.fillRect(rectX + 12, rectY + 12, rectW, rectH);
 
+                // Bubble
                 ctx.fillStyle = '#FFFFFF';
                 ctx.strokeStyle = '#1A1A1A';
                 ctx.fillRect(rectX, rectY, rectW, rectH);
                 ctx.strokeRect(rectX, rectY, rectW, rectH);
-
+                
+                // Tail
                 ctx.beginPath();
                 if (isLeft) {
                     ctx.moveTo(rectX + rectW - 40, rectY + rectH); 
@@ -277,20 +290,79 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean): Promise<str
                 ctx.fill();
                 ctx.stroke();
 
+                // Text
                 ctx.fillStyle = '#1A1A1A';
                 ctx.fillText(phrase.toUpperCase(), bubbleX, bubbleY + 5);
                 ctx.restore();
             }
 
+            // 4. Draw Logo (TOP LEFT CORNER)
             logoImg.onload = () => {
                 const logoWidth = width * 0.22; 
                 const scale = logoWidth / logoImg.width;
                 const logoHeight = logoImg.height * scale;
                 const padding = 40; 
                 
-
                 ctx.drawImage(logoImg, padding, padding, logoWidth, logoHeight);
-                resolve(canvas.toDataURL('image/jpeg', 0.95));
+
+                // 5. Draw Full Width Name Bar (Bottom)
+                if (userName && userName.trim() !== "") {
+                    const nameText = userName.toUpperCase();
+                    const barHeight = 220; // Fixed height for the bar
+                    const barY = height - barHeight;
+
+                    // Draw Full Width White Bar
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, barY, width, barHeight);
+
+                    // Draw Top Border for definition
+                    ctx.strokeStyle = '#1A1A1A';
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(0, barY);
+                    ctx.lineTo(width, barY);
+                    ctx.stroke();
+
+                    // Text (Red, Centered)
+                    ctx.font = '900 130px "Outfit", sans-serif'; 
+                    ctx.fillStyle = '#e82024';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(nameText, width / 2, barY + (barHeight / 2) + 5);
+                }
+
+                // 6. Draw Stamp Image (TOP RIGHT - BIG & CUT OUT)
+                stampImg.onload = () => {
+                    // Make it BIG: 45% of canvas width
+                    const stampW = width * 0.45; 
+                    const stampScale = stampW / stampImg.width;
+                    const stampH = stampImg.height * stampScale;
+                    
+                    // Calculate offsets to push it off-screen (cut out effect)
+                    // Push 1/3rd of the stamp width off the right edge
+                    const offsetX = stampW / 3; 
+                    // Push 1/3rd of the stamp height off the top edge
+                    const offsetY = stampH / 3; 
+
+                    // Draw coordinates: 
+                    // X = Canvas Width - Stamp Width + Offset (moves right)
+                    // Y = Negative Offset (moves up)
+                    const drawX = width - stampW + offsetX;
+                    const drawY = -offsetY;
+
+                    ctx.drawImage(stampImg, drawX, drawY, stampW, stampH);
+                    
+                    resolve(canvas.toDataURL('image/jpeg', 0.95));
+                };
+
+                // Handle stamp error (resolve anyway)
+                stampImg.onerror = () => {
+                    console.error("Stamp image not found at /stamp.png");
+                    resolve(canvas.toDataURL('image/jpeg', 0.95));
+                };
+                
+                // IMPORTANT: Ensure this path is correct in your Vercel public folder
+                stampImg.src = '/public/images/stamp.png'; 
             };
             
             logoImg.onerror = () => resolve(canvas.toDataURL('image/jpeg', 0.95));
@@ -311,8 +383,7 @@ export default function ETHMumbaiApp() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupMode, setIsGroupMode] = useState(false);
-  
-  // NEW STATE FOR CREDITS
+  const [userName, setUserName] = useState<string>(""); 
   const [credits, setCredits] = useState<number>(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -365,8 +436,11 @@ export default function ETHMumbaiApp() {
 
   const handleGenerate = async () => {
     if (!image) return;
+    if (!userName.trim()) {
+        alert("Please enter your name!");
+        return;
+    }
     
-    // Check credits before proceeding
     if (credits <= 0) {
         alert("You have used all your free credits!");
         return;
@@ -396,10 +470,9 @@ export default function ETHMumbaiApp() {
         const imgData = data.candidates?.[0]?.content?.parts?.find((p:any) => p.inlineData)?.inlineData?.data;
         
         if (imgData) {
-            const finalImage = await addWatermarkAndText(imgData, isGroupMode);
+            const finalImage = await addWatermarkAndText(imgData, isGroupMode, userName);
             setGeneratedImage(finalImage);
             
-            // DEDUCT CREDIT ON SUCCESSFUL GENERATION
             const newCredits = credits - 1;
             setCredits(newCredits);
             localStorage.setItem('eth_mumbai_credits', newCredits.toString());
@@ -486,9 +559,9 @@ export default function ETHMumbaiApp() {
         </div>
 
         <div className="relative w-full max-w-[340px] md:max-w-md shrink-0 mb-8 md:mb-0">
-            <div className="absolute -z-10 -top-12 -right-12 w-32 h-32 bg-[#FFD233] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
-            <div className="absolute -z-20 top-10 -right-14 w-24 h-24 bg-[#3B82F6] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
-            <div className="absolute -z-30 top-2 -right-4 w-12 h-12 bg-[#FFC8DD] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
+            <div className="absolute -z-10 -top-8 -right-8 w-28 h-28 bg-[#FFD233] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
+            <div className="absolute -z-20 top-14 -right-12 w-20 h-20 bg-[#3B82F6] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
+            <div className="absolute -z-30 -top-2 -right-2 w-10 h-10 bg-[#FFC8DD] rounded-full border-4 border-black hard-shadow hidden md:block"></div>
 
             <div className="bg-[#FFF8F3] rounded-3xl border-4 border-black p-2 shadow-[8px_8px_0px_rgba(0,0,0,0.3)] relative">
                 <div className="absolute top-4 left-4 w-3 h-3 bg-[#D1D5DB] rounded-full border-2 border-black flex items-center justify-center"><div className="w-full h-0.5 bg-black rotate-45"></div></div>
@@ -497,7 +570,6 @@ export default function ETHMumbaiApp() {
                 <div className="bg-white rounded-2xl border-2 border-black overflow-hidden p-4 md:p-6 flex flex-col items-center">
                     <div className="w-full flex justify-between items-center mb-4 border-b-2 border-dashed border-gray-300 pb-4">
                         <span className="font-bold text-gray-400 text-sm md:text-base">TICKET MACHINE #01</span>
-                        {/* CREDIT COUNTER UI */}
                         <div className={`flex items-center gap-1.5 px-2 py-1 rounded border-2 border-black text-xs font-bold ${credits > 0 ? 'bg-[#FFD233] text-black' : 'bg-red-500 text-white'}`}>
                             <Ticket size={14} />
                             {credits} LEFT
@@ -506,8 +578,6 @@ export default function ETHMumbaiApp() {
 
                     {!generatedImage ? (
                         <div className="w-full space-y-4">
-                            
-                            {/* NEW TEXT ADDED HERE */}
                             <p className="text-center text-xs font-bold text-red-500 bg-red-100 p-2 rounded border border-red-300">
                             Maximum credit is set to 1 for now so everything runs smoothly. We’ll increase it very soon.
                             </p>
@@ -527,6 +597,14 @@ export default function ETHMumbaiApp() {
                                     <Users size={18} /> GROUP
                                 </button>
                             </div>
+
+                            <input 
+                                type="text"
+                                placeholder="Enter Your Name..."
+                                value={userName}
+                                onChange={(e) => setUserName(e.target.value)}
+                                className="w-full py-3 px-4 border-2 border-black rounded-lg font-bold text-lg text-center outline-none focus:bg-gray-50 placeholder:text-gray-400"
+                            />
 
                             {!image ? (
                                 <div 
@@ -552,14 +630,11 @@ export default function ETHMumbaiApp() {
 
                             <button 
                                 onClick={handleGenerate}
-                                // DISABLED if no image, loading, OR NO CREDITS
-                                disabled={!image || loading || credits <= 0}
+                                disabled={!image || loading || credits <= 0 || !userName.trim()}
                                 className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
-                                    ${credits <= 0 
+                                    ${(credits <= 0 || !image || !userName.trim())
                                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
-                                        : !image 
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                                            : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
+                                        : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
                                     }`}
                             >
                                 {loading ? (
@@ -571,7 +646,6 @@ export default function ETHMumbaiApp() {
                                 )}
                             </button>
                             
-                            {/* Warning message if credits low/zero */}
                             {credits <= 0 && (
                                 <p className="text-xs text-red-500 font-bold text-center mt-2">
                                     Limit reached for this device.

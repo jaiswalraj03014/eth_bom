@@ -11,7 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-// --- FULL DETAILED PROMPTS (UNSHORTENED) ---
+// --- FULL DETAILED PROMPTS ---
 
 const SINGLE_PROMPT = `EXTREME STRICT TEMPLATE — ZERO DEVIATION  
 This pipeline produces a square 1:1 avatar of a SINGLE PERSON with a scattered Mumbai doodle background.  
@@ -165,6 +165,35 @@ const Styles = () => (
         100% { transform: scale(1); opacity: 1; }
     }
     .modal-zoom { animation: zoom-in 0.2s ease-out forwards; }
+
+    /* --- NEW LOADING ANIMATION: MINTING STRIPES --- */
+    @keyframes mint-stripes {
+      0% { background-position: 0 0; }
+      100% { background-position: 50px 50px; }
+    }
+
+    .loading-minting {
+        background-color: #FFFFFF !important;
+        color: #e82024 !important; /* Red Text */
+        border-color: #e82024 !important;
+        /* The Slant Red Lines */
+        background-image: linear-gradient(
+            -45deg, 
+            rgba(232, 32, 36, 0.10) 25%, 
+            transparent 25%, 
+            transparent 50%, 
+            rgba(232, 32, 36, 0.10) 50%, 
+            rgba(232, 32, 36, 0.10) 75%, 
+            transparent 75%, 
+            transparent
+        ) !important;
+        background-size: 50px 50px !important;
+        animation: mint-stripes 1s linear infinite !important;
+        cursor: wait !important;
+        opacity: 1 !important;
+        text-shadow: none !important;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05) !important;
+    }
   `}</style>
 );
 
@@ -200,7 +229,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
         const ctx = canvas.getContext('2d');
         const mainImg = new Image();
         const logoImg = new Image();
-        const stampImg = new Image(); // New Stamp Image
+        const stampImg = new Image(); 
 
         // 1. DYNAMIC RESOLUTION
         const width = 2048;
@@ -308,7 +337,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 // 5. Draw Full Width Name Bar (Bottom)
                 if (userName && userName.trim() !== "") {
                     const nameText = userName.toUpperCase();
-                    const barHeight = 220; // Fixed height for the bar
+                    const barHeight = 220; 
                     const barY = height - barHeight;
 
                     // Draw Full Width White Bar
@@ -338,14 +367,9 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     const stampScale = stampW / stampImg.width;
                     const stampH = stampImg.height * stampScale;
                     
-                    // NEW POSITION: Top Right Corner, slightly off-screen to "cut out"
-                    // Offset: Push 30% of width/height off screen
                     const offsetX = stampW * 0.3; 
                     const offsetY = stampH * 0.3; 
 
-                    // Draw coordinates: 
-                    // X = Width - stampW + offsetX (pushes it right)
-                    // Y = -offsetY (pushes it up)
                     const drawX = width - stampW + offsetX; 
                     const drawY = -offsetY;
 
@@ -360,7 +384,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
                 };
                 
-                // IMPORTANT: Ensure this path is correct in your Vercel public folder
                 stampImg.src = '/images/stamp.png'; 
             };
             
@@ -373,7 +396,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
 };
 
 // CONSTANT FOR CREDITS
-const MAX_CREDITS = 1;
+const MAX_CREDITS = 2;
 
 export default function ETHMumbaiApp() {
   const [image, setImage] = useState<string | null>(null);
@@ -387,7 +410,7 @@ export default function ETHMumbaiApp() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize Credits from LocalStorage on mount
+  // Initialize Credits
   useEffect(() => {
     const storedCredits = localStorage.getItem('eth_mumbai_credits');
     if (storedCredits) {
@@ -631,13 +654,15 @@ export default function ETHMumbaiApp() {
                                 onClick={handleGenerate}
                                 disabled={!image || loading || credits <= 0 || !userName.trim()}
                                 className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
-                                    ${(credits <= 0 || !image || !userName.trim())
-                                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
-                                        : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
+                                    ${loading 
+                                        ? 'loading-minting' 
+                                        : (credits <= 0 || !image || !userName.trim())
+                                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
+                                            : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
                                     }`}
                             >
                                 {loading ? (
-                                    <>MINTING {isGroupMode ? 'GROUP' : ''} TICKETS <span className="animate-spin ml-2"></span></>
+                                    <>MINTING TICKET...</>
                                 ) : credits <= 0 ? (
                                     <>NO CREDITS LEFT <AlertCircle size={20} /></>
                                 ) : (

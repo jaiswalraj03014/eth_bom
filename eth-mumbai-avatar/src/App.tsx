@@ -7,8 +7,7 @@ import {
   Ticket,
   Maximize2,
   Users,
-  User,
-  AlertCircle
+  User
 } from 'lucide-react';
 
 // --- FULL DETAILED PROMPTS ---
@@ -395,9 +394,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
     });
 };
 
-// CONSTANT FOR CREDITS
-const MAX_CREDITS = 3;
-
 export default function ETHMumbaiApp() {
   const [image, setImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -406,20 +402,8 @@ export default function ETHMumbaiApp() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [userName, setUserName] = useState<string>(""); 
-  const [credits, setCredits] = useState<number>(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize Credits
-  useEffect(() => {
-    const storedCredits = localStorage.getItem('eth_mumbai_credits');
-    if (storedCredits) {
-        setCredits(parseInt(storedCredits));
-    } else {
-        localStorage.setItem('eth_mumbai_credits', MAX_CREDITS.toString());
-        setCredits(MAX_CREDITS);
-    }
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isModalOpen ? 'hidden' : '';
@@ -463,11 +447,6 @@ export default function ETHMumbaiApp() {
         return;
     }
     
-    if (credits <= 0) {
-        alert("You have used all your free credits!");
-        return;
-    }
-
     setLoading(true);
     
     try {
@@ -494,11 +473,6 @@ export default function ETHMumbaiApp() {
         if (imgData) {
             const finalImage = await addWatermarkAndText(imgData, isGroupMode, userName);
             setGeneratedImage(finalImage);
-            
-            const newCredits = credits - 1;
-            setCredits(newCredits);
-            localStorage.setItem('eth_mumbai_credits', newCredits.toString());
-
         } else {
             console.error(data);
             alert("Could not generate image. Please try again.");
@@ -592,16 +566,14 @@ export default function ETHMumbaiApp() {
                 <div className="bg-white rounded-2xl border-2 border-black overflow-hidden p-4 md:p-6 flex flex-col items-center">
                     <div className="w-full flex justify-between items-center mb-4 border-b-2 border-dashed border-gray-300 pb-4">
                         <span className="font-bold text-gray-400 text-sm md:text-base">TICKET MACHINE #01</span>
-                        <div className={`flex items-center gap-1.5 px-2 py-1 rounded border-2 border-black text-xs font-bold ${credits > 0 ? 'bg-[#FFD233] text-black' : 'bg-red-500 text-white'}`}>
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded border-2 border-black text-xs font-bold bg-[#FFD233] text-black">
                             <Ticket size={14} />
-                            {credits} LEFT
+                            UNLIMITED
                         </div>
                     </div>
 
                     {!generatedImage ? (
                         <div className="w-full space-y-4">
-                            
-
                             <div className="flex w-full border-2 border-black rounded-lg overflow-hidden hard-shadow">
                                 <button 
                                     onClick={() => setIsGroupMode(false)}
@@ -650,29 +622,21 @@ export default function ETHMumbaiApp() {
 
                             <button 
                                 onClick={handleGenerate}
-                                disabled={!image || loading || credits <= 0 || !userName.trim()}
+                                disabled={!image || loading || !userName.trim()}
                                 className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
                                     ${loading 
                                         ? 'loading-minting' 
-                                        : (credits <= 0 || !image || !userName.trim())
+                                        : (!image || !userName.trim())
                                             ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
                                             : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
                                     }`}
                             >
                                 {loading ? (
                                     <>MINTING TICKET...</>
-                                ) : credits <= 0 ? (
-                                    <>NO CREDITS LEFT <AlertCircle size={20} /></>
                                 ) : (
                                     <>GENERATE {isGroupMode ? 'GROUP' : ''} TICKETS <Zap size={20} fill="currentColor" /></>
                                 )}
                             </button>
-                            
-                            {credits <= 0 && (
-                                <p className="text-xs text-red-500 font-bold text-center mt-2">
-                                    Limit reached for this device.
-                                </p>
-                            )}
                         </div>
                     ) : (
                         <div className="w-full flex flex-col items-center ticket-reveal">

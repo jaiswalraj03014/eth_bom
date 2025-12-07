@@ -396,7 +396,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
 };
 
 // CONSTANT FOR CREDITS
-const MAX_CREDITS = 2;
+const MAX_CREDITS = 3;
 
 export default function ETHMumbaiApp() {
   const [image, setImage] = useState<string | null>(null);
@@ -600,9 +600,7 @@ export default function ETHMumbaiApp() {
 
                     {!generatedImage ? (
                         <div className="w-full space-y-4">
-                            <p className="text-center text-xs font-bold text-red-500 bg-red-100 p-2 rounded border border-red-300">
-                            Maximum credit is set to 2 for now so everything runs smoothly. We’ll increase it very soon.
-                            </p>
+                            
 
                             <div className="flex w-full border-2 border-black rounded-lg overflow-hidden hard-shadow">
                                 <button 

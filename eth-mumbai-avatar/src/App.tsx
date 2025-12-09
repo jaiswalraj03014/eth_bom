@@ -10,8 +10,6 @@ import {
   User
 } from 'lucide-react';
 
-// --- FULL DETAILED PROMPTS ---
-
 const SINGLE_PROMPT = `EXTREME STRICT TEMPLATE — ZERO DEVIATION  
 This pipeline produces a square 1:1 avatar of a SINGLE PERSON with a scattered Mumbai doodle background.  
 No artistic freedom on subject features.
@@ -92,7 +90,6 @@ RULES FOR DOODLES: They MUST be spread evenly.
 `;
 
 
-// --- CUSTOM STYLES ---
 const Styles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=JetBrains+Mono:wght@500&family=Outfit:wght@400;600;800&display=swap');
@@ -196,7 +193,6 @@ const Styles = () => (
   `}</style>
 );
 
-// --- VISUAL COMPONENTS ---
 
 const Marquee = () => (
   <div className="w-full bg-black text-white py-2 overflow-hidden border-y-2 border-black z-50 relative shrink-0">
@@ -220,8 +216,6 @@ const Navbar = () => (
     </div>
   </nav>
 );
-
-// --- HELPER: ADD WATERMARK, TEXT, NAME & STAMP ---
 const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: string): Promise<string> => {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
@@ -230,7 +224,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
         const logoImg = new Image();
         const stampImg = new Image(); 
 
-        // 1. DYNAMIC RESOLUTION
         const width = 2048;
         const height = isGroup ? 1536 : 2048;
 
@@ -245,7 +238,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
         mainImg.onload = () => {
             if (!ctx) return;
 
-            // 2. Draw Main Image (Crop/Fit Logic)
             const imgAspect = mainImg.width / mainImg.height;
             const canvasAspect = width / height;
             let drawW, drawH, offX, offY;
@@ -262,12 +254,10 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 offY = (height - drawH) / 2;
             }
 
-            // Fill red first
             ctx.fillStyle = '#e82024';
             ctx.fillRect(0, 0, width, height);
             ctx.drawImage(mainImg, offX, offY, drawW, drawH);
 
-            // 3. Add Slang Bubbles (ONLY IF GROUP MODE)
             if (isGroup) {
                 ctx.font = '900 85px "Outfit", sans-serif';
                 ctx.textAlign = 'center';
@@ -276,10 +266,9 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
 
                 const phrase = mumbaiPhrases[Math.floor(Math.random() * mumbaiPhrases.length)];
                 
-                // Safe corners
                 const isLeft = Math.random() > 0.5;
                 const bubbleX = isLeft ? width * 0.15 : width * 0.85;
-                const bubbleY = height * 0.2; // Top 20%
+                const bubbleY = height * 0.2; 
 
                 const textMetrics = ctx.measureText(phrase.toUpperCase());
                 const textWidth = textMetrics.width;
@@ -294,17 +283,14 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 ctx.rotate((Math.random() - 0.5) * 0.2); 
                 ctx.translate(-bubbleX, -bubbleY);
 
-                // Shadow
                 ctx.fillStyle = '#1A1A1A';
                 ctx.fillRect(rectX + 12, rectY + 12, rectW, rectH);
 
-                // Bubble
                 ctx.fillStyle = '#FFFFFF';
                 ctx.strokeStyle = '#1A1A1A';
                 ctx.fillRect(rectX, rectY, rectW, rectH);
                 ctx.strokeRect(rectX, rectY, rectW, rectH);
                 
-                // Tail
                 ctx.beginPath();
                 if (isLeft) {
                     ctx.moveTo(rectX + rectW - 40, rectY + rectH); 
@@ -318,13 +304,11 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 ctx.fill();
                 ctx.stroke();
 
-                // Text
                 ctx.fillStyle = '#1A1A1A';
                 ctx.fillText(phrase.toUpperCase(), bubbleX, bubbleY + 5);
                 ctx.restore();
             }
 
-            // 4. Draw Logo (TOP LEFT CORNER)
             logoImg.onload = () => {
                 const logoWidth = width * 0.22; 
                 const scale = logoWidth / logoImg.width;
@@ -333,17 +317,14 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                 
                 ctx.drawImage(logoImg, padding, padding, logoWidth, logoHeight);
 
-                // 5. Draw Full Width Name Bar (Bottom)
                 if (userName && userName.trim() !== "") {
                     const nameText = userName.toUpperCase();
                     const barHeight = 220; 
                     const barY = height - barHeight;
 
-                    // Draw Full Width White Bar
                     ctx.fillStyle = '#FFFFFF';
                     ctx.fillRect(0, barY, width, barHeight);
 
-                    // Draw Top Border for definition
                     ctx.strokeStyle = '#1A1A1A';
                     ctx.lineWidth = 8;
                     ctx.beginPath();
@@ -351,7 +332,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     ctx.lineTo(width, barY);
                     ctx.stroke();
 
-                    // Text (Red, Centered)
                     ctx.font = '900 130px "Outfit", sans-serif'; 
                     ctx.fillStyle = '#e82024';
                     ctx.textAlign = 'center';
@@ -359,9 +339,7 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     ctx.fillText(nameText, width / 2, barY + (barHeight / 2) + 5);
                 }
 
-                // 6. Draw Stamp Image (TOP RIGHT - BIG & CUT OUT)
                 stampImg.onload = () => {
-                    // Make it BIG: 45% of canvas width
                     const stampW = width * 0.45; 
                     const stampScale = stampW / stampImg.width;
                     const stampH = stampImg.height * stampScale;
@@ -377,7 +355,6 @@ const addWatermarkAndText = (base64Image: string, isGroup: boolean, userName: st
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
                 };
 
-                // Handle stamp error (resolve anyway)
                 stampImg.onerror = () => {
                     console.error("Stamp image not found at /stamp.png");
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
@@ -450,8 +427,8 @@ export default function ETHMumbaiApp() {
     setLoading(true);
     
     try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+        const url = '/api/generate'; 
+        
         const base64Image = image.split(',')[1];
         
         const promptToUse = isGroupMode ? GROUP_PROMPT : SINGLE_PROMPT;
@@ -468,6 +445,7 @@ export default function ETHMumbaiApp() {
         });
 
         const data = await response.json();
+        
         const imgData = data.candidates?.[0]?.content?.parts?.find((p:any) => p.inlineData)?.inlineData?.data;
         
         if (imgData) {

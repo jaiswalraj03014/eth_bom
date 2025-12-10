@@ -568,7 +568,7 @@ export default function ETHMumbaiApp() {
 
                     {!generatedImage ? (
                         <div className="w-full space-y-4">
-                            {/* --- NEW WARNING MESSAGE --- */}
+                            {/* --- UPDATED WARNING MESSAGE WITH YELLOW BANNER --- */}
                             <div className="w-full py-2 px-3 bg-[#FFD233] border-2 border-black rounded-lg text-center flex items-center justify-center gap-2">
                                 <p className="font-bold text-xs md:text-sm text-black leading-tight">
                                     Maximum credit is set to 1 for now so everything runs smoothly. We’ll increase it very soon.

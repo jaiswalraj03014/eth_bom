@@ -10,6 +10,8 @@ import {
   User
 } from 'lucide-react';
 
+const MAX_CREDIT = 1; 
+
 const SINGLE_PROMPT = `EXTREME STRICT TEMPLATE — ZERO DEVIATION  
 This pipeline produces a square 1:1 avatar of a SINGLE PERSON with a scattered Mumbai doodle background.  
 No artistic freedom on subject features.
@@ -380,6 +382,12 @@ export default function ETHMumbaiApp() {
   const [isGroupMode, setIsGroupMode] = useState(false);
   const [userName, setUserName] = useState<string>(""); 
   
+  // --- CREDITS STATE (Initialize from localStorage) ---
+  const [creditsUsed, setCreditsUsed] = useState(() => {
+    const saved = localStorage.getItem('ethmumbai_credits_used');
+    return saved ? parseInt(saved) : 0;
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -418,6 +426,11 @@ export default function ETHMumbaiApp() {
   };
 
   const handleGenerate = async () => {
+    // --- CHECK CREDITS ---
+    if (creditsUsed >= MAX_CREDIT) {
+        return; // UI already handles this, but good safety check
+    }
+
     if (!image) return;
     if (!userName.trim()) {
         alert("Please enter your name!");
@@ -451,6 +464,11 @@ export default function ETHMumbaiApp() {
         if (imgData) {
             const finalImage = await addWatermarkAndText(imgData, isGroupMode, userName);
             setGeneratedImage(finalImage);
+            
+            // --- DEDUCT CREDIT ON SUCCESS ---
+            const newCount = creditsUsed + 1;
+            setCreditsUsed(newCount);
+            localStorage.setItem('ethmumbai_credits_used', newCount.toString());
         } else {
             console.error(data);
             alert("Could not generate image. Please try again.");
@@ -546,7 +564,8 @@ export default function ETHMumbaiApp() {
                         <span className="font-bold text-gray-400 text-sm md:text-base">TICKET MACHINE #01</span>
                         <div className="flex items-center gap-1.5 px-2 py-1 rounded border-2 border-black text-xs font-bold bg-[#FFD233] text-black">
                             <Ticket size={14} />
-                            UNLIMITED
+                            {/* Display remaining credits */}
+                            {creditsUsed >= MAX_CREDIT ? '0 LEFT' : `${MAX_CREDIT - creditsUsed} LEFT`}
                         </div>
                     </div>
 
@@ -598,23 +617,32 @@ export default function ETHMumbaiApp() {
                                 </div>
                             )}
 
-                            <button 
-                                onClick={handleGenerate}
-                                disabled={!image || loading || !userName.trim()}
-                                className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
-                                    ${loading 
-                                        ? 'loading-minting' 
-                                        : (!image || !userName.trim())
-                                            ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
-                                            : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
-                                    }`}
-                            >
-                                {loading ? (
-                                    <>MINTING TICKET...</>
-                                ) : (
-                                    <>GENERATE {isGroupMode ? 'GROUP' : ''} TICKETS <Zap size={20} fill="currentColor" /></>
-                                )}
-                            </button>
+                            {/* --- CONDITIONAL RENDER: BUTTON OR MESSAGE --- */}
+                            {creditsUsed >= MAX_CREDIT ? (
+                                <div className="w-full py-4 px-4 bg-[#FFF8F3] border-2 border-black border-dashed rounded-xl flex items-center justify-center text-center">
+                                    <p className="font-bold text-sm md:text-base text-gray-600 leading-tight">
+                                        Maximum credit is set to 1 for now so everything runs smoothly. We’ll increase it very soon.
+                                    </p>
+                                </div>
+                            ) : (
+                                <button 
+                                    onClick={handleGenerate}
+                                    disabled={!image || loading || !userName.trim()}
+                                    className={`w-full py-3 md:py-4 rounded-xl font-bold text-lg md:text-xl border-2 border-black hard-shadow flex items-center justify-center gap-2 active:translate-y-1 active:shadow-none transition-all touch-manipulation
+                                        ${loading 
+                                            ? 'loading-minting' 
+                                            : (!image || !userName.trim())
+                                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed border-gray-500' 
+                                                : 'bg-[#e82024] text-white hover:bg-[#d11d21]'
+                                        }`}
+                                >
+                                    {loading ? (
+                                        <>MINTING TICKET...</>
+                                    ) : (
+                                        <>GENERATE {isGroupMode ? 'GROUP' : ''} TICKETS <Zap size={20} fill="currentColor" /></>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="w-full flex flex-col items-center ticket-reveal">
